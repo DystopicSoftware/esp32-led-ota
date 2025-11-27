@@ -1,53 +1,65 @@
-| Supported Targets | ESP32 | ESP32-C2 | ESP32-C3 | ESP32-C5 | ESP32-C6 | ESP32-C61 | ESP32-H2 | ESP32-H21 | ESP32-H4 | ESP32-P4 | ESP32-S2 | ESP32-S3 | Linux |
-| ----------------- | ----- | -------- | -------- | -------- | -------- | --------- | -------- | --------- | -------- | -------- | -------- | -------- | ----- |
+# Sistema ESP32: Servidor Web, OTA y Sincronización NTP
 
-# Hello World Example
+Este proyecto implementa un firmware robusto para ESP32 utilizando **ESP-IDF v5.5** y **FreeRTOS**. Se destaca por utilizar una **arquitectura de software limpia sin variables globales**, basada en inyección de dependencias mediante un contexto de aplicación (`app_context`).
 
-Starts a FreeRTOS task to print "Hello World".
+## 🚀 Características Principales
 
-(See the README.md file in the upper level 'examples' directory for more information about examples.)
+*   **Arquitectura Profesional:** Comunicación entre tareas mediante Colas (`xQueue`) y paso de contexto por punteros. Cero variables globales.
+*   **WiFi Híbrido (AP + STA):**
+    *   **Modo Estación:** Se conecta a un Router/Hotspot para tener acceso a Internet.
+    *   **Modo Access Point:** Crea una red de respaldo (`ESP32_MASTER`) accesible sin router.
+*   **Sincronización de Hora (NTP):** Obtiene la hora mundial de `pool.ntp.org` automáticamente al detectar Internet.
+*   **Servidor Web Embebido:**
+    *   Interfaz visual HTML/CSS/JS (embebida en el binario).
+    *   Visualización de reloj en tiempo real (AJAX/Fetch).
+    *   Control de LED remoto.
+*   **Actualización Inalámbrica (OTA):** Capacidad de actualizar el firmware subiendo un archivo `.bin` desde el navegador.
 
-## How to use example
+## 🛠 Hardware Requerido
 
-Follow detailed instructions provided specifically for this example.
+*   **ESP32 DevKitC** (o compatible).
+*   **LED** (Opcional): Conectado al GPIO definido en `led_service.c` (Por defecto GPIO 2 para el LED integrado).
+*   Cable USB para flasheo inicial.
 
-Select the instructions depending on Espressif chip installed on your development board:
+## ⚙️ Configuración
 
-- [ESP32 Getting Started Guide](https://docs.espressif.com/projects/esp-idf/en/stable/get-started/index.html)
-- [ESP32-S2 Getting Started Guide](https://docs.espressif.com/projects/esp-idf/en/latest/esp32s2/get-started/index.html)
+Antes de compilar, edite el archivo `main/wifi_service.c` y `main/main.c` para ajustar sus credenciales:
 
+1.  **Credenciales Router (STA):** En `main.c`.
+2.  **Credenciales Punto de Acceso (AP):** En `wifi_service.c` (Default: `ESP32_MASTER` / `12345678`).
+3.  **Zona Horaria:** En `wifi_service.c` (Default: `EST5` para UTC-5).
 
-## Example folder contents
+## 📦 Instalación y Uso
 
-The project **hello_world** contains one source file in C language [hello_world_main.c](main/hello_world_main.c). The file is located in folder [main](main).
+1.  **Compilar:**
+    ```bash
+    idf.py build
+    ```
+2.  **Flashear:**
+    ```bash
+    idf.py flash monitor
+    ```
+3.  **Acceso Web:**
+    *   Si está conectado al Router: Mire el monitor serial para ver la IP asignada (ej: `http://192.168.1.15`).
+    *   Si está conectado al AP del ESP32: Acceda a `http://192.168.4.1`.
 
-ESP-IDF projects are built using CMake. The project build configuration is contained in `CMakeLists.txt` files that provide set of directives and instructions describing the project's source files and targets (executable, library, or both).
+## 📡 API Endpoints
 
-Below is short explanation of remaining files in the project folder.
+El servidor expone los siguientes endpoints JSON:
 
-```
-├── CMakeLists.txt
-├── pytest_hello_world.py      Python script used for automated testing
-├── main
-│   ├── CMakeLists.txt
-│   └── hello_world_main.c
-└── README.md                  This is the file you are currently reading
-```
+| Método | Endpoint      | Descripción                           |
+| :----- | :------------ | :------------------------------------ |
+| `GET`  | `/api/time`   | Devuelve la hora actual del sistema.  |
+| `POST` | `/api/led`    | Cambia el estado del LED (Toggle).    |
+| `POST` | `/OTAupdate`  | Recibe el archivo `.bin` para update. |
 
-For more information on structure and contents of ESP-IDF projects, please refer to Section [Build System](https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-guides/build-system.html) of the ESP-IDF Programming Guide.
+## 📂 Estructura del Proyecto
 
-## Troubleshooting
-
-* Program upload failure
-
-    * Hardware connection is not correct: run `idf.py -p PORT monitor`, and reboot your board to see if there are any output logs.
-    * The baud rate for downloading is too high: lower your baud rate in the `menuconfig` menu, and try again.
-
-## Technical support and feedback
-
-Please use the following feedback channels:
-
-* For technical queries, go to the [esp32.com](https://esp32.com/) forum
-* For a feature request or bug report, create a [GitHub issue](https://github.com/espressif/esp-idf/issues)
-
-We will get back to you as soon as possible.
+```text
+main/
+├── app_context.h   # Estructura maestra de datos (Contexto)
+├── main.c          # Punto de entrada e inyección de dependencias
+├── wifi_service.c  # Gestión de AP, STA y SNTP
+├── http_service.c  # Rutas Web y manejador OTA
+├── led_service.c   # Tarea controladora de Hardware
+└── web/            # Código Fuente Frontend (HTML/JS)
