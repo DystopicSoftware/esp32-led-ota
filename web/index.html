@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ESP32 Panel</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; margin-top: 50px; background-color: #f4f4f4; }
+        .card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); display: inline-block; }
+        h1 { color: #333; }
+        .clock { font-size: 40px; font-weight: bold; color: #007bff; margin: 20px 0; font-family: 'Courier New', monospace; }
+        button { padding: 10px 20px; font-size: 16px; cursor: pointer; background-color: #28a745; color: white; border: none; border-radius: 5px; }
+        button:hover { background-color: #218838; }
+        input[type=file] { margin-top: 20px; }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <h1>ESP32 Control Center</h1>
+        
+        <!-- AQUÍ SE MOSTRARÁ LA HORA -->
+        <div id="clock-display" class="clock">--:--:--</div>
+
+        <hr>
+        <button onclick="toggleLed()">Toggle LED</button>
+        <br><br>
+
+        <h3>Actualizar Firmware (OTA)</h3>
+        <input type="file" id="otafile" name="otafile" />
+        <button onclick="uploadOta()" style="background-color: #007bff; margin-top: 10px;">Subir .bin</button>
+    </div>
+
+    <script>
+        // Función para cambiar el LED
+        function toggleLed() {
+            fetch('/api/led', {method: 'POST'})
+                .then(res => console.log("LED Toggled"))
+                .catch(err => console.error(err));
+        }
+
+        // Función para subir OTA
+        function uploadOta() {
+            var fileInput = document.getElementById('otafile');
+            var file = fileInput.files[0];
+            if (!file) { alert("Selecciona un archivo .bin primero"); return; }
+            
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', '/OTAupdate', true);
+            xhr.send(file);
+            alert("Subiendo... El ESP32 se reiniciará al terminar.");
+        }
+
+        // --- LÓGICA DEL RELOJ ---
+        function updateClock() {
+            fetch('/api/time')
+                .then(response => response.json())
+                .then(data => {
+                    // data.time viene del C: {"time": "18:30:05"}
+                    document.getElementById('clock-display').innerText = data.time;
+                })
+                .catch(error => console.log("Error obteniendo hora:", error));
+        }
+
+        // Ejecutar updateClock cada 1000ms (1 segundo)
+        setInterval(updateClock, 1000);
+        
+        // Ejecutar una vez al inicio
+        updateClock();
+    </script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+# Ignorar carpeta de compilación
+build/
+managed_components/
+dependencies.lock
+
+# Archivos de sistema y editor
+.vscode/
+.idea/
+*.DS_Store
+sdkconfig.old
